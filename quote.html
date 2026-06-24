@@ -1,0 +1,529 @@
+<html>
+  <head>
+    <title>Sitat</title>
+    <link rel="icon" href="icon.png">
+    <style>
+        body {
+            overflow-x: hidden;
+            overflow-y: hidden;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            background-color: DarkSlateGrey;
+            background-image: url('china1.jpg');
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position: top;
+            transition: background-image 1.2s ease-in-out;
+        }
+
+        .main {
+            display: grid;
+            grid-template-columns:
+                1fr
+                minmax(400px, 28%) 
+                15%;
+            min-height: 100vh;
+            background: #ffffff00;
+        }
+
+        .left {
+            text-align: start;
+            padding: 10px 10px 10px 10px;
+        }
+
+        .right {
+            display: grid;
+            align-items: end;
+            text-align: center;
+            padding: 10px 10px 10px 10px;
+        }
+
+        .center {
+            display: grid;
+            grid-template-rows:
+                1fr
+                100px;
+            background: #ffffff;
+            padding: 60px 60px 60px 60px;
+            text-align: center;
+            align-items: center;
+        }
+
+        .modern-select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-color: rgba(255, 255, 255, 0);
+            border: 1px solid rgba(255, 255, 255, 0);
+            border-radius: 12px;
+            padding: 0em 0em 0em 0.1em;
+            font-size: 4rem;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.2);
+            font-family: 'Palatino Linotype', Palatino, 'Book Antiqua', serif;
+            width: 100%;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+        .modern-select option {
+            font-size: 0.9rem;
+            background-color: rgba(30, 30, 30, 1);
+        }
+        .modern-select:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.7);
+        }
+
+        .modern-button {
+            outline: none;
+            padding-top: 5px;
+            text-decoration: none;
+            opacity: 0.6;
+            background-color: DarkSlateGrey;
+            color: white;
+            border: thin solid lightgray;
+            height: 40px;
+            width: 100px;
+            border-radius: 2px;
+            transition: 0.5s;
+            padding-bottom: 5px;
+        }
+        .modern-button:hover {
+            background-color: white;
+            color: black;
+            border: thin solid black;
+            opacity: 0.8;
+        }
+
+        .quote {
+            font-family: Georgia, 'Palatino Linotype', Palatino, serif;
+        }
+
+        .chinesequote {
+            font-size: 2rem;
+            font-weight: 300;
+            font-family: 'Noto Sans SC', 'Noto Sans CJK SC', sans-serif;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+    </style>
+  </head>
+  <body onload="genQuote()">
+        <div class="main">
+            <div class="left">
+                <select id="categoryselect" class="modern-select"></select>
+            </div>
+            <div class="center">
+                <div class="center-top">
+                    <p id="quote" class="quote">Error load</p>
+                </div>
+                <div class="center-bottom">
+                    <button id="genquote" class="modern-button" onclick="genQuote()">Nytt sitat</button>
+                </div>
+            </div>
+            <div class="right">
+                <p id="chinesequote" class="chinesequote">Error load</p>
+            </div>
+        </div>
+    <script>
+
+/* =========================
+   FUNCTIONS
+========================= */
+        // Load CSV
+        async function loadCSV(url) {
+            const response = await fetch(url);
+            const text = await response.text();
+            return parseCSV(text);
+        }
+
+        // Parse CSV data into an array of objects
+        function parseCSV(csv) {
+            const lines = csv.trim().split("\n");
+            const headers = lines[0].split(";");
+
+            return lines.slice(1).map(line => {
+                const values = line.split(";");
+                const obj = {};
+                headers.forEach((h, i) => obj[h] = values[i]);
+                return obj;
+            });
+        }
+
+        // Filter quotes CSV
+        function filterQuotes(rows, selectedCategory) {
+            if (selectedCategory === "ALL") return rows;
+
+            return rows.filter(row =>
+                row.category === selectedCategory
+            );
+        }
+
+        // Hent kategori metadata
+        function getCategoryMeta(categoryName) {
+            return categories.find(c => c.category === categoryName);
+        }
+
+        // Generate quote
+        function genQuote() {
+            const selectedCategory = document.getElementById("categoryselect").value;
+            const filteredQuotes = filterQuotes(allQuotes, selectedCategory);
+            if (filteredQuotes.length === 0) {
+                document.getElementById("quote").innerHTML =
+                    "<p>Ingen quotes i denne kategorien.</p>";
+                return;
+            }
+            const randNum = Math.floor(Math.random() * filteredQuotes.length);
+            const q = filteredQuotes[randNum];
+
+            document.getElementById("quote").innerHTML = `
+                <h1>“${q.quote}”</h1>
+                <h3>${q.metaquote || ""}</h3>
+                <h2 style="font-style: italic;">— ${q.author}</h2>
+            `;
+            
+            const categoryMeta = getCategoryMeta(selectedCategory);
+            document.getElementById("chinesequote").textContent = categoryMeta.original;
+
+        }
+
+        // Set default category by day of week
+        function setCategoryByWeekday() {
+            const today = new Date();
+            let jsDay = today.getDay(); // 0 = søndag, 1 = mandag...
+
+            // Konverter søndag (0) til 7
+            const dayNumber = jsDay === 0 ? 7 : jsDay;
+
+            const match = categories.find(c =>
+                Number(c.day) === dayNumber
+            );
+
+            categorySelect.value = match ? match.category : "ALL";
+            document.getElementById("chinesequote").innerHTML = match.original
+        }
+
+        // Change backround image
+        // document.body.style.backgroundImage = "url('009.jpg')"
+
+
+/* =========================
+   CATEGORY DATA
+========================= */
+        const csvCategories = `
+category;day;proverb;original
+Barn og foreldrerollen;6;Actions speak louder than words;言传不如身教
+Holdning og livsfilosofi;1;Learning without thinking is useless – thinking without learning is dangerous;学而不思则罔，思而不学则殆
+Selvfølelse;2;Compare yourself to who you were yesterday, not to who someone else is today;不与人比，与己比
+Selvrefleksjon, mening og selvutvikling;3;Å kjenne andre er klokskap – å kjenne seg selv er sann innsikt;知人者智，自知者明
+Sosialt samspill;4;Meet others with sincerity;以诚待人
+Stress- og angstmestring;5;Mountains are high, rivers long;山高水长
+`;
+       const categories = parseCSV(csvCategories);
+
+
+/* =========================
+   BUILD DROPDOWN
+========================= */
+const categorySelect = document.getElementById("categoryselect");
+
+categorySelect.innerHTML =
+    `<option value="ALL">Alle kategorier</option>` +
+    categories.map(c =>
+        `<option value="${c.category}">${c.category}</option>`
+    ).join("");
+
+
+/* =========================
+   QUOTE DATA
+========================= */
+        const csvQuotes = `
+quote;metaquote;author;source;category;originalquote;20260619
+Oppmuntre Adrian til å være nysgjerrig;Vis Adrian at verden kan være et spennende og magisk sted;Alexander Næss;;Barn og foreldrerollen;
+Sørg for at Adrian får tid til å utforske i eget tempo;;Alexander Næss;;Barn og foreldrerollen;
+Tren på å se ting fra Adrians perspektiv;;Alexander Næss;;Barn og foreldrerollen;
+Gi Adrian tilbakemeldinger i stedet for ros;;Alexander Næss;;Barn og foreldrerollen;
+Vis forståelse for Adrians følelser;;ICDP;ICDP;Barn og foreldrerollen;
+Hjelp Adrian å forstå sine egne følelser, og vis aksept for alle følelser;Det er også OK å være sint og lei seg;ICDP;ICDP;Barn og foreldrerollen;
+La Adrian føle på også de negative følelsene;Ikke avled oppmerksomheten for å bli ferdig med følelsen;ICDP;ICDP;Barn og foreldrerollen;
+Dele opplevelsen med Adrian;ie. 'Det gikk veldig fort. Nå kilte det sikkert i magen?';ICDP;ICDP;Barn og foreldrerollen;
+La Adrian følge sine egne ideer og gjøre ting på sin måte;Støtt, oppmuntre og gi tid;ICDP;ICDP;Barn og foreldrerollen;
+La Adrian være med på prosessen;ie. la Adrian dekke på bordet eller hjelpe til med maten;ICDP;ICDP;Barn og foreldrerollen;
+Sammenligne og se likheter og sammenhenger mellom ting, handlinger og hendelser;;ICDP;ICDP;Barn og foreldrerollen;
+Forutsigbarhet er nødvendig for å utvikle selvkontroll;Planlegg sammen og sett mål;ICDP;ICDP;Barn og foreldrerollen;
+Lag gode rutiner for en god struktur i hverdagen;;ICDP;ICDP;Barn og foreldrerollen;
+Trekk tilbake støtte når barnet begynner å mestre;for mye støtte kan gjøre barn usikre på seg selv og redde for å prøve nye ting;ICDP;ICDP;Barn og foreldrerollen;
+Positiv grensesetting;Forklar hvorfor du setter grenser;ICDP;ICDP;Barn og foreldrerollen;
+Gi konkret ros og forklar hva som er bra;ie. 'så fint at du gjør sånn, for da…';ICDP;ICDP;Barn og foreldrerollen;
+Ros Adrian for den han er;;ICDP;ICDP;Barn og foreldrerollen;
+Vis at du er glad i Adrian;;ICDP;ICDP;Barn og foreldrerollen;
+Vær 100% mentalt til stede med Adrian;;ICDP;ICDP;Barn og foreldrerollen;
+Vær på Adrians nivå og del felles oppmerksomhet;;ICDP;ICDP;Barn og foreldrerollen;
+Vis at du har tid og er interessert;;ICDP;ICDP;Barn og foreldrerollen;
+Ikke forby aktiviteter, men finn trygge tilpasninger;;Smårollingene;Smårollingene;Barn og foreldrerollen;
+Ikke grip inn og lag regler i barnas lek;;Smårollingene;Smårollingene;Barn og foreldrerollen;
+La barnet utforske fritt;;Smårollingene;Smårollingene;Barn og foreldrerollen;
+Skap arenaer for mestringsfølelse hvis barnet mangler det i de vanlige arenaene;ie. hvis Adrian sliter på skolen, ta han med på skateboard for å gi han opplevelsen av å mestre noe vanskelig;Sondre Risholm Liverød;Sinnsyn;Barn og foreldrerollen;
+Gi barnet ubetinget kjærlighet;for at barnet ikke skal være avhengig av prestasjon for selvfølelse;Sondre Risholm Liverød;Sinnsyn;Barn og foreldrerollen;
+Du kan ikke alltid velge hva du må gjøre, men du kan velge hvilken holdning du skal ha til det;;Alexander Næss;;Holdning og livsfilosofi;
+Stå i det uløselige spennet mellom motstridende sider av seg selv;ha plass til, og aksepter, at man kan romme følelser og trekk fra begge ender av spekteret samtidig;Carl Gustav Jung;Sinnsyn;Holdning og livsfilosofi;Holding the tension of the opposites
+Uretten betyr ingenting, så lenge du ikke fortsetter å huske den;;Confucius;How to Stop Worrying and Start Living;Holdning og livsfilosofi;To be wronged or robbed, is nothing unless you continue to remember it
+Aksepter det som er;;Dale Carnegie;How to Stop Worrying and Start Living;Holdning og livsfilosofi;
+37%-regelen for valg;avvis de første 37% kandidatene automatisk, deretter aksepter den første som er bedre;Derek Muller;Veritasium;Holdning og livsfilosofi;
+Jeg eier ingenting som kan eie meg;;Diogenes ;Philosophize This!;Holdning og livsfilosofi;I possess nothing that can possess me (core philosophy of Diogenes)
+Søk ikke at ting skjer som du vil, men vil det som skjer;;Epictetus;Philosophize This!;Holdning og livsfilosofi;Don't seek to have events happen as you wish, but wish them to happen as they do happen, and all will be well with you
+Ikke krev at livet skal være lett – krev at du skal være sterk;;Epictetus;Philosophize This!;Holdning og livsfilosofi;Don't demand that life be easy – demand that you be stronger (paraphrase)
+Si ikke om noe du mister: 'Jeg har mistet det', men: 'Jeg har gitt det tilbake.';;Epictetus;Philosophize This!;Holdning og livsfilosofi;Do not say of anything 'I have lost it', but rather 'I have given it back'. Has your wife died? You have given her back. Has your child died? You have given him back. Have you lost your home? You have given it back. 'But,' you may retort, 'a bad person took it'. It is not your concern by what means something returns to the Source from which it came. For as long as the Source entrusts something to your hands, treat it as something borrowed, like a traveller at an inn.
+Det er ikke hva som skjer med deg, men hvordan du reagerer på det som betyr noe;;Epictetus;Philosophize This!;Holdning og livsfilosofi;It's not what happens to you, but how you react to it that matters
+Om jeg må dø. Må jeg da dø klagende? Om jeg må legges i lenker. Må jeg da også syte? Om jeg sendes i eksil. Er det da noen som kan nekte meg å dra med et smil, med godt mot og indre ro?;;Epictetus;Philosophize This!;Holdning og livsfilosofi;I must die. Must I then die lamenting? I must be put in chains. Must I then also lament? I must go into exile. Does any man then hinder me from going with smiles and cheerfulness and contentment?
+Vær villig til å være dødelig;verden stopper ikke med deg;Ingvard Wilhelmsen;Det er ikke mer synd på deg enn andre;Holdning og livsfilosofi;
+Ta avgjørelser under tvil;det meste i livet er ukontrollerbart;Ingvard Wilhelmsen;Det er ikke mer synd på deg enn andre;Holdning og livsfilosofi;
+Velg å leve med risiko;;Ingvard Wilhelmsen;Det er ikke mer synd på deg enn andre;Holdning og livsfilosofi;
+Takknemlighet skaper tilfredshet;;Kurzgesagt;Kurzgesagt;Holdning og livsfilosofi;
+Amygdala kan læres opp, men den forstår ikke språk;;Lovisenberg DPS;Lovisenberg DPS;Holdning og livsfilosofi;
+Velg å stole på helsepersonell;;Lovisenberg DPS;Lovisenberg DPS;Holdning og livsfilosofi;
+Oppfør deg som om du er frisk;vis at du har tillit til kroppen;Lovisenberg DPS;Lovisenberg DPS;Holdning og livsfilosofi;
+Å spare penger er å investere i trygghet, i tillegg til å kjøpe finansiell frihet til å kjøpe det du ønsker senere;altså kjøper du stressreduksjon;Morgan Housel;The Art of Spending Money;Holdning og livsfilosofi;
+Et rikt liv er ikke å ha mye, men å trenge lite;;Seneca;Philosophize This!;Holdning og livsfilosofi;It is not the man who has too little, but the man who craves more, that is poor
+Rikdom er å trenge lite;;Socrates;Philosophize This!;Holdning og livsfilosofi;He is richest who is content with the least
+Alt du tenker og føler er feil;dine tanker og følelser er filtrert gjennom dine nevroser;Sondre Risholm Liverød;Sinnsyn;Holdning og livsfilosofi;
+Et liv uten problemer er meningsløst;;Sondre Risholm Liverød;Sinnsyn;Holdning og livsfilosofi;
+Det er ikke meningen at ting skal gå på skinner;;Sondre Risholm Liverød;Sinnsyn;Holdning og livsfilosofi;
+Dårlige erfaringer er materiale for en spennende historie;;Sondre Risholm Liverød;Sinnsyn;Holdning og livsfilosofi;
+Frihet er ikke å velge hele tiden, men å ha rutiner som velger klokt for deg;unngå å bli en slave til dine impulser;Sondre Risholm Liverød;Sinnsyn;Holdning og livsfilosofi;
+Vær fornøyd med det du har;stå i valgene og ikke let etter alternativene du allerede valgte bort;Sondre Risholm Liverød;Sinnsyn;Holdning og livsfilosofi;
+La indre motivasjon drive deg;å leve etter ytre motivasjon er en slitsom måte å leve på, og det vil kun fungere på kort sikt;Sondre Risholm Liverød;Sinnsyn;Holdning og livsfilosofi;
+Vær åpen om dine svake sider, så mister de sin makt over deg;;Sondre Risholm Liverød;Sinnsyn;Holdning og livsfilosofi;
+Når man forsøker å unngå farer, gjør det deg mer oppmerksomme på dem, og mer engstelig;;Sondre Risholm Liverød;Sinnsyn;Holdning og livsfilosofi;
+En pessimist ser vanskeligheter i enhver mulighet – en optimist ser muligheter i enhver vanskelighet;;Winston Churchill;How to Stop Worrying and Start Living;Holdning og livsfilosofi;A pessimist sees the difficulty in every opportuniy – an optimist sees the opportunity in every difficulty
+En sunn følelse av mindreverdighet er ikke noe som kommer fra å sammenligne seg med andre – den kommer fra ens sammenligning med sitt ideelle selv;;Alfred Adler;;Selvfølelse;A healthy feeling of inferiority is not something that comes from comparing oneself to others – it comes from one's comparison with one's ideal self
+Først le av deg selv – så kan verden gjøre lite;;Epictetus;Philosophize This!;Selvfølelse;He who laughs at himself never runs out of things to laugh at
+Hvis noen forteller deg at en bestemt person snakker stygt om deg, ikke kom med unnskyldninger for det som blir sagt, men svar: 'Han var uvitende om mine andre feil, ellers ville han ikke ha nevnt bare disse';;Epictetus;Philosophize This!;Selvfølelse;If anyone tells you that a certain person speaks ill of you, do not make excuses about what is said of you but answer, "He was ignorant of my other faults, else he would not have mentioned these alone
+Dine behov er like viktige som andres;la ting gå på dine premisser;Ingvard Wilhelmsen;Det er ikke mer synd på deg enn andre;Selvfølelse;
+Unngå usunne avhengighetsforhold;;Ingvard Wilhelmsen;Det er ikke mer synd på deg enn andre;Selvfølelse;
+Se på feil som trinn på veien mot dyktighet, ikke som snubletråder;;Jack Lannom;People First;Selvfølelse;View mistakes as stepping stones of the path to excellence, not as stumbling blocks
+En vinner er bare en taper som prøvde en gang til;;Mensa;Mensa;Selvfølelse;
+Hvis du lever etter andres meninger, lever du ikke ditt eget liv;;Mensa;Mensa;Selvfølelse;
+Bitterhet mot noen kan være et tegn på at du er for avhengig av andres mening;;Mensa;Mensa;Selvfølelse;
+Materiell mangel skaper utfordringer;sosial sammenligning skaper angst;Ole Jacob Madsen;Abels tårn;Selvfølelse;
+Det er uklokt å legge sin verdi i noe utenfor seg selv;;Sondre Risholm Liverød;Sinnsyn;Selvfølelse;
+Ta plass!;;Sondre Risholm Liverød;Sinnsyn;Selvfølelse;
+Sinne som ikke rettes utover, rettes innover;;Sondre Risholm Liverød;Sinnsyn;Selvfølelse;
+Med et deterministisk verdenssyn, kan man få for mye forståelse for andre;som kan føre til at aggresjon ikke får utløp og vil kunne rettes innover;Sondre Risholm Liverød;Sinnsyn;Selvfølelse;
+Din verdi er ikke basert på dine prestasjoner;;Sondre Risholm Liverød;Sinnsyn;Selvfølelse;
+Ikke sammenlign deg med andre;;Sondre Risholm Liverød;Sinnsyn;Selvfølelse;
+Si 'jeg tenker' i stedet for å være bastant;;Sondre Risholm Liverød;Sinnsyn;Selvfølelse;
+Du trenger ikke å gjøre alle fornøyde;alle kommer i/kke til å like deg, og det er helt greit;Ullevål psykolog;Ullevål psykolog;Selvfølelse;
+Sett av tid til deg selv;uten å få dårlig samvittighet;Ullevål psykolog;Ullevål psykolog;Selvfølelse;
+Geniale personer beundres, rike personer misunnes, mektige personer fryktes – men bare personer med karakter stoles på;;Alfred Adler;;Selvrefleksjon, mening og selvutvikling;Men of genius are admired, men of wealth are envied, men of power are feared – but only men of character are trusted
+Inntil du gjør det ubevisste bevisst, vil det styre livet ditt;Bevissthet er første steg mot forandring;Carl Gustav Jung;Sinnsyn;Selvrefleksjon, mening og selvutvikling;Until you make the unconscious conscious, it will direct your life and you will call it fate
+Det du mest trenger er å møte det du helst vil unngå;;Carl Gustav Jung;Sinnsyn;Selvrefleksjon, mening og selvutvikling;What you most need will be found where you least want to look
+Alt som irriterer oss hos andre, kan føre til innsikt om oss selv;;Carl Gustav Jung;Sinnsyn;Selvrefleksjon, mening og selvutvikling;Everything that irritates us about others can lead us to an understanding of ourselves
+Det du motsetter deg, vedvarer. Det du aksepterer, kan forvandles;;Carl Gustav Jung;Sinnsyn;Selvrefleksjon, mening og selvutvikling;What you resist, persists
+Du kan ikke forandre noe uten først å akseptere det;;Carl Gustav Jung;Sinnsyn;Selvrefleksjon, mening og selvutvikling;We cannot change anything unless we accept it. Condemnation does not liberate, it oppresses
+Man blir ikke opplyst ved å forestille seg lys, men ved å gjøre mørket bevisst;;Carl Gustav Jung;Sinnsyn;Selvrefleksjon, mening og selvutvikling;One does not become enlightened by imagining figures of light, but by making the darkness conscious
+Vi er dårlige til å forutsi hva som vil gjøre oss lykkelige;;Daniel Kahneman;Thinking Fast and Slow;Selvrefleksjon, mening og selvutvikling;People are poor predictors of what will make them happy (paraphrase)
+En sikker metode for å få folk til å tro på usannheter, er hyppig gjentakelse;;Daniel Kahneman;Thinking Fast and Slow;Selvrefleksjon, mening og selvutvikling;A reliable way to make people believe in falsehoods is frequent repetition
+Enhver person som er i stand til å gjøre deg sint, blir din herre; han kan bare gjøre deg sint når du tillater deg selv å bli forstyrret av ham;Epictetus;Philosophize This!;Selvrefleksjon, mening og selvutvikling;Any person capable of angering you becomes your master; he can anger you only when you permit yourself to be disturbed by him
+Du blir det du gir oppmerksomheten din;;Epictetus;Philosophize This!;Selvrefleksjon, mening og selvutvikling;You become what you give your attention to
+Bevissthet er første steg mot forandring;;Nathaniel Branden;;Selvrefleksjon, mening og selvutvikling;The first step towards change is awareness, the second step is acceptance
+Religion anses av massene som sant, av de vise som falskt, og av myndigheter som nyttig;;Seneca;Philosophize This!;Selvrefleksjon, mening og selvutvikling;Religion is regarded by the common people as true, by the wise as false, and by rulers as useful
+Du kan miste kun det du klamrer deg til;;Siddhartha Gautama (Buddha);;Selvrefleksjon, mening og selvutvikling;You can only lose what you cling to
+Følelser som undertrykkes, forsvinner ikke – de kommer tilbake sterkere;;Sigmund Freud;Sinnsyn;Selvrefleksjon, mening og selvutvikling;Unexpressed emotions will never die. They are buried alive and will come forth later in uglier ways
+Det meste av våre handlinger er motivert av krefter vi ikke er klar over;;Sigmund Freud;Sinnsyn;Selvrefleksjon, mening og selvutvikling;Most of our actions are motivated by forces we are unaware of
+Et liv uten selvrefleksjon er ikke verdt å leve;;Socrates;Philosophize This!;Selvrefleksjon, mening og selvutvikling;The unexamined life is not worth living
+Jeg vet at jeg ikke vet noe;Den klokeste er den som vet hva han ikke vet;Socrates;Philosophize This!;Selvrefleksjon, mening og selvutvikling;I know that I know nothing
+Vær oppmerksom på dine dårligste sider;ikke bli den dårlige versjonen av deg selv;Sondre Risholm Liverød;Sinnsyn;Selvrefleksjon, mening og selvutvikling;
+Følelser som ikke er satt ord på vil utvikles til kroppslige smerter;;Sondre Risholm Liverød;Sinnsyn;Selvrefleksjon, mening og selvutvikling;
+Jo flere valg vi har, desto vanskeligere blir det å velge;dette fører til stress og angst;Sondre Risholm Liverød;Sinnsyn;Selvrefleksjon, mening og selvutvikling;
+En helhetlig opplevelse er mer påvirket av det negative enn det positive;du kan oppleve en hendelse som negativ selv om den objetivt sett er mer positiv;Sondre Risholm Liverød;Sinnsyn;Selvrefleksjon, mening og selvutvikling;
+For å trives på jobb trenger man å tilhøre et fellesskap, og ha betydning og mening i arbeidet;;Sondre Risholm Liverød;Sinnsyn;Selvrefleksjon, mening og selvutvikling;
+Man blir ikke lykkelig av glede og aktiviteter man liker;det må også være meningsfullt;Sondre Risholm Liverød;Sinnsyn;Selvrefleksjon, mening og selvutvikling;
+Rusmiddel-avhengighet skyldes i hovedsak manglende nærhet og vennskap;kjemisk avhengighet er mye mindre potent;Ukjent;Youtube;Selvrefleksjon, mening og selvutvikling;
+Den beste investeringen du kan gjøre, er i deg selv;;Warren Buffett;;Selvrefleksjon, mening og selvutvikling;The most important investment you can make is in yourself
+Smil og gi oppriktig ros;;Alexander Næss;;Sosialt samspill;
+Du kan bli kvitt depresjon ved å starte dagen med å tenke på hvordan du kan glede andre;;Alfred Adler;How to Stop Worrying and Start Living;Sosialt samspill;You can be healed of depression if you begin every day by considering how you will bring real joy to someone else
+Ikke utsett å gjøre noe godt for noen andre. Du er her nå, og dette øyeblikket kommer ikke tilbake;;Dale Carnegie;How to Stop Worrying and Start Living;Sosialt samspill;
+Et menneskes karakter avsløres av hvordan vedkommende behandler dem som tjener ham;;Jack Lannom;People First;Sosialt samspill;One's character is revealed by how he treats the people who serve him
+Se potensialet i andre og uttrykk det, så vil de reise til potensialet;;Jack Lannom;People First;Sosialt samspill;Treat people like gold, and they'll shine like gold
+Forsinket anerkjennelse er en tapt mulighet;ros skal være oppriktig, spesifikk, umiddelbar og personlig;Jack Lannom;People First;Sosialt samspill;Delayed recognition is a missed opportunity
+En virkelig stor leder er en som ser eplet i frøet;;Lao Tzu;People First;Sosialt samspill;A truly great leader is one who sees the apple inside the seed
+Vær slik du ønsker å fremstå;;Socrates;Philosophize This!;Sosialt samspill;Be as you wish to seem
+Lat som du er den minst opplyste i forsamlingen;du vil lære mer og bli godt likt;Sondre Risholm Liverød;Sinnsyn;Sosialt samspill;
+Gå inn i samtaler med mål om å lære, ikke å imponere;ikke prøv å være noen du ikke er – du vil da få mindre angst;Sondre Risholm Liverød;Sinnsyn;Sosialt samspill;
+Se mennesker som bedre enn de er;dette vil gi motivasjon til å møte forventningene;Sondre Risholm Liverød;Sinnsyn;Sosialt samspill;
+Oppriktighet viser respekt, selv når den er ubehagelig;;Sondre Risholm Liverød;Sinnsyn;Sosialt samspill;
+Verdsett andres meninger;du trenger ikke være enig for å vise respekt;Sondre Risholm Liverød;Sinnsyn;Sosialt samspill;
+Du kan ikke presse på noen en ide;de vil bli sterkere i sin mening og dypere i sin virkelighets tunnel – men de kan adoptere det selv fra andre, og det er derfor gruppeterapi fungerer så godt;Sondre Risholm Liverød;Sinnsyn;Sosialt samspill;
+Hils på fremmede og småprat;;Sondre Risholm Liverød;Sinnsyn;Sosialt samspill;
+Ta jevnlige pauser fra tankene;bare vær;Alexander Næss;;Stress- og angstmestring;
+Stopp opp, se på skyene, og la tankene drive forbi;;Alexander Næss;;Stress- og angstmestring;
+Den største faren i livet er at du tar for mange forholdsregler;;Alfred Adler;;Stress- og angstmestring;The chief danger in life is that you may take too many precautions
+Samle objektive fakta rundt bekymringen;lat som du samler fakta for en annen;Dale Carnegie;How to Stop Worrying and Start Living;Stress- og angstmestring;
+Håndter problemer når de kommer;ikke før, og ikke etter;Dale Carnegie;How to Stop Worrying and Start Living;Stress- og angstmestring;
+Det du kan løse nå, bør ikke utsettes;små oppgaver utsatt blir ofte store byrder i tankene;Dale Carnegie;How to Stop Worrying and Start Living;Stress- og angstmestring;
+Start med å avspenne musklene, deretter vil sinnet følge etter;kjenn etter 4-5 ganger om dagen hvor spent du er;Dale Carnegie;How to Stop Worrying and Start Living;Stress- og angstmestring;
+Statistisk sett skal det ikke skje deg!;;Dale Carnegie;How to Stop Worrying and Start Living;Stress- og angstmestring;
+Ingenting i livet er så viktig som du tror det er, mens du tenker på det;;Daniel Kahneman;Thinking Fast and Slow;Stress- og angstmestring;Nothing in life is as important as you think it is, while you are thinking about it
+Det er ikke hendelser som plager oss, men våre vurderinger av dem;;Epictetus;Philosophize This!;Stress- og angstmestring;Men are disturbed not by things, but by the views which they take of things
+Det finnes bare én vei til lykke, og det er å slutte å bekymre seg for ting som er utenfor vår makt eller vilje;;Epictetus;Philosophize This!;Stress- og angstmestring;There is only one way to happiness and that is to cease worrying about things which are beyond the power or our will
+Man bekymrer seg ikke så mye over virkelige problemer, som over sine innbilte bekymringer om virkelige problemer;;Epictetus;Philosophize This!;Stress- og angstmestring;Man is not worried by real problems so much as by his imagined anxieties about real problems
+Stå opp samme tid hver dag;;Hanne H. Brorson;;Stress- og angstmestring;
+Helseangst er at man forsøker å få kontroll på noe som er ukontrollerbart;vær villig til å leve med risiko;Ingvard Wilhelmsen;Det er ikke mer synd på deg enn andre;Stress- og angstmestring;
+Kronisk stress fører til utbrenthet;;Ingvard Wilhelmsen;Det er ikke mer synd på deg enn andre;Stress- og angstmestring;
+Grubling og bekymring bidrar til å opprettholde stress;;Ingvard Wilhelmsen;Det er ikke mer synd på deg enn andre;Stress- og angstmestring;
+Man kan fint behandle angsten uten å vite hva som er den underliggende årsaken;det er ikke nødvendig å grave i barndommen;Ingvard Wilhelmsen;Det er ikke mer synd på deg enn andre;Stress- og angstmestring;
+Observer de automatiske tankene – ikke grip dem eller døm dem;;Ingvard Wilhelmsen;Det er ikke mer synd på deg enn andre;Stress- og angstmestring;
+Ikke lytt til kroppens signaler;da vil du høre alt for mye;Ingvard Wilhelmsen;Det er ikke mer synd på deg enn andre;Stress- og angstmestring;
+Gjør som du ville gjort uten angst;er det noe du virkelig vil unngå, så kanskje det er nettopp det du burde gjøre;Lovisenberg DPS;Lovisenberg DPS;Stress- og angstmestring;
+Utfordre ubehaget ved å ønske mer angst eller symptomer;ikke forsøk å unngå smerten;Lovisenberg DPS;Lovisenberg DPS;Stress- og angstmestring;
+Sett av fast tid til bekymringer;;Lovisenberg DPS;Lovisenberg DPS;Stress- og angstmestring;
+Vær spontan;gjør noe nytt og få nye inntrykk;Mongo Young;;Stress- og angstmestring;
+Vi lider oftere i fantasien enn i virkeligheten;;Seneca;Philosophize This!;Stress- og angstmestring;We suffer more often in imagination than in reality
+Vanskelige følelser er ikke feil;de er et rødt lys som ber oss stoppe opp;Sondre Risholm Liverød;Sinnsyn;Stress- og angstmestring;
+Trening reduserer stresshormoner og slipper ut endorfiner;det fungerer både som smertelindrende og stressreduserende;Sondre Risholm Liverød;Sinnsyn;Stress- og angstmestring;
+Barnet lever i den virkelige verden;ikke i fortid eller fremtid;Sondre Risholm Liverød;Sinnsyn;Stress- og angstmestring;
+Når du beskriver følelsen er du den som ser den fra utsiden, og ikke den som er fanget av den;distanser deg fra bekymringene og følelsene;Sondre Risholm Liverød;Sinnsyn;Stress- og angstmestring;
+Du er ikke de tilfeldige tankene og følelsene som dukker opp i din bevissthet;;Sondre Risholm Liverød;Sinnsyn;Stress- og angstmestring;
+Vinterdepresjon kan behandles med sosiale aktiviteter, lys, og tran;;Sondre Risholm Liverød;Sinnsyn;Stress- og angstmestring;
+Ikke la en midlertidig følelse bli en permanent tolkning av livet;ikke bli trist fordi du er trist;Sondre Risholm Liverød;Sinnsyn;Stress- og angstmestring;
+Så lenge du ikke er død, kan det fikses;;Van Lena Næss;;Stress- og angstmestring;
+Når du kan se elven, så er du ikke fanget i den;renner elven ut i en foss, enda bedre;Yongey Mingyur Rinpoche;10% happier;Stress- og angstmestring;If you see the river, you ar out of the river. You don't need to stop the river. Let the river come. If you fall into the river, and the river goes out in a waterfall, you are in danger. But if you can see the river, it means you're out of the river. Then it doesn't matter if river goes out in a waterfall. Actually, it's better. Many people spend a lot of money to see a waterfall right?
+Jo mer et menneske søker å være til nytte for andre, desto mer mening og styrke får det i sitt eget liv;;Viktor E. Frankl;Sinnsyn;Sosialt samspill;The more one forgets himself by giving himself to a cause or to serve another person, the more human he is and the more he actualizes himself
+Suksess kan ikke forfølges – den må oppstå som et utilsiktet resultat;;Viktor E. Frankl;Sinnsyn;Selvrefleksjon, mening og selvutvikling;Don't aim at success. The more you aim at it and make it a target, the more you are going to miss it. For success, like happiness, cannot be pursued – it must ensue, and it only does so as the unintended side effect of one's personal dedication to a cause greater than oneself or as the by-product of one's surrender to a person other than oneself
+Når vi ikke kan endre situasjonen, må vi endre oss selv;;Viktor E. Frankl;Sinnsyn;Selvrefleksjon, mening og selvutvikling;When we are no longer able to change a situation, we are challenged to change ourselves
+Mellom stimulus og respons finnes det et rom. I dette rommet ligger vår kraft til å velge vår respons. I vår respons ligger vår vekst og vår frihet;Det du opplever former deg ikke – det er hvordan du responderer som former hvem du blir;Viktor E. Frankl;Sinnsyn;Selvrefleksjon, mening og selvutvikling;Between stimulus and response there is a space. In that space is our power to choose our response. In our response lies our growth and our freedom
+På et vis slutter lidelse å være lidelse i det øyeblikket den får en mening, som for eksempel meningen med et offer;;Viktor E. Frankl;Sinnsyn;Selvrefleksjon, mening og selvutvikling;In some way, suffering ceases to be suffering at the moment it finds a meaning, such as the meaning of a sacrifice
+Menneskelig godhet finnes i alle grupper, selv i dem som det er lett å fordømme;;Viktor E. Frankl;Sinnsyn;Sosialt samspill;Human kindness can be found in all groups, even those which as a whole it would be easy to condemn
+Livet blir aldri uutholdelig på grunn av omstendighetene, men bare på grunn av mangel på mening og formål;;Viktor E. Frankl;Sinnsyn;Stress- og angstmestring;Life is never made unbearable by circumstances, but only by lack of meaning and purpose
+Pessimisten ser veggkalenderen bli tynnere – optimisten ser bunken av revne kalenderblader fylles med levde dager, erfaring og visdom;;Viktor E. Frankl;Sinnsyn;Holdning og livsfilosofi;The pessimist resembles a man who observes with fear and sadness that his wall calendar, from which he daily tears a sheet, grows thinner with each passing day. On the other hand, the person who attacks the problems of life actively is like a man who removes each successive leaf from his calendar and files it neatly and carefully away with its predecessors, after first having jotted down a few diary notes on the back. He can reflect with pride and joy on all the richness set down in these notes, on all the life he has already lived to the fullest.
+Et menneske uten spenning mellom det det er og det det burde være, blir apatisk;;Viktor E. Frankl;Sinnsyn;Selvrefleksjon, mening og selvutvikling;Mental health is based on a certain degree of tension, the tension between what one has already achieved and what one still ought to accomplish, or the gap between what one is and what one should become. Such a tension is inherent in the human being and therefore is indispensable to mental well-being. We should not, then, be hesitant about challenging man with a potential meaning for him to fulfill. It is only thus that we evoke his will to meaning from its state of latency. I consider it a dangerous misconception of mental hygiene to assume that what man needs in the first place is equilibrium or, as it is called in biology, "homeostasis," i.e., a tensionless state. What man actually needs is not a tensionless state but rather the striving and struggling for a worthwhile goal, a freely chosen task. What he needs is not the discharge of tension at any cost but the call of a potential meaning waiting to be fulfilled by him. What man needs is not homeostasis but what i call "noo-dynamics," i.e., the existential dynamics in a polar field of tension where one pole is represented by a meaning that is to be fulfilled and the other pole by the man who has to fulfill it.
+Når jeg slipper hvem jeg er, blir jeg hvem jeg kan bli;;Lao Tzu;Philosophize This!;Selvrefleksjon, mening og selvutvikling;When I let go of who I am, I become who I might be
+Den vise er den som vet hva han ikke vet;;Lao Tzu;Philosophize This!;Selvrefleksjon, mening og selvutvikling;The wise man is one who, knows, what he does not know
+En reise på tusen mil begynner med ett enkelt skritt;;Lao Tzu;Philosophize This!;Selvrefleksjon, mening og selvutvikling;The journey of a thousand miles begins with a single step
+Ikke motsett deg livets spontane forandringer – det skaper kun sorg;La ting flyte naturlig fremover på den måten det vil;Lao Tzu;Philosophize This!;Stress- og angstmestring;Life is a series of natural and spontaneous changes. Don't resist them – that only creates sorrow. Let reality be reality. Let things flow naturally forward in whatever way they like
+De som vet, taler ikke. De som taler, vet ikke;;Lao Tzu;Philosophize This!;Sosialt samspill;Those who know do not speak. Those who speak do not know
+Når du er tilfreds med å være deg selv og ikke sammenligner eller konkurrerer, vil alle respektere deg;;Lao Tzu;Philosophize This!;Sosialt samspill;When you are content to be simply yourself and don't compare or compete, everyone will respect you
+Hvis du er deprimert, lever du i fortiden. Hvis du er engstelig, lever du i fremtiden. Hvis du er i fred, lever du i nuet;;Lao Tzu;Philosophize This!;Stress- og angstmestring;If you are depressed you are living in the past. If you are anxious you are living in the future. If you are at peace you are living in the present
+Bryr du deg om hva andre tenker, vil du alltid være deres slave;;Lao Tzu;Philosophize This!;Selvfølelse;Care about what other people think and you will always be their prisoner
+Naturen har ikke hastverk, likevel er alt fullført;;Lao Tzu;Philosophize This!;Selvrefleksjon, mening og selvutvikling;Nature does not hurry, yet everything is accomplished
+Vær tilfreds med det du har, og gled deg over slik tingene er – Når du innser at ingenting mangler, tilhører hele verden deg;;Lao Tzu;Philosophize This!;Selvrefleksjon, mening og selvutvikling;Be content with what you have, and rejoice in the way things are – When you realize there is nothing lacking, the whole world belongs to you
+Svar intelligent, selv på uintelligent behandling;;Lao Tzu;Philosophize This!;Sosialt samspill;Respond intelligently even to unintelligent treatment
+For å oppnå kunnskap, legg til noe nytt hver dag – For å oppnå visdom, ta bort noe hver dag;;Lao Tzu;Philosophize This!;Selvrefleksjon, mening og selvutvikling;To attain knowledge, add things everyday – To attain wisdom, remove things every day
+Vokt tankene dine, de blir til ord. Vokt ordene dine, de blir til handlinger. Vokt handlingene dine, de blir til vaner. Vokt vanene dine, de blir til din karakter. Vokt din karakter, den blir din skjebne.;;Lao Tzu;Philosophize This!;Selvrefleksjon, mening og selvutvikling;Watch your thoughts, they become your words. Watch your words, they become your actions. Watch your actions, they become your habits. Watch your habits, they become your character. Watch your character, it becomes your destiny.
+Å ikke gjøre noe, er bedre enn å være travelt opptatt med å gjøre ingenting;;Lao Tzu;Philosophize This!;Selvrefleksjon, mening og selvutvikling;Doing nothing is better than being busy doing nothing
+Hvis du ikke endrer retning, kan du ende opp dit du er på vei;;Lao Tzu;Philosophize This!;Selvrefleksjon, mening og selvutvikling;If you do not change direction, you may end up where you are heading
+Ved tre metoder kan vi lære visdom: Det første ved selvrefleksjon, som er den edleste. Det andre ved etterligning, som er den letteste. Og det tredje ved erfaring, som er den bitreste;;Confucius;Philosophize This!;Selvrefleksjon, mening og selvutvikling;By three methods we may learn wisdom: First, by reflection, which is noblest. Second, by imitation, which is easiest. And third by experience, which is the bitterest
+Det spiller ingen rolle hvor langsomt du går, så lenge du ikke stopper;;Confucius;Philosophize This!;Selvrefleksjon, mening og selvutvikling;It does not matter how slowly you go as long as you do not stop
+Den som kjenner alle svarene, har ikke blitt stilt alle spørsmålene;;Confucius;Philosophize This!;Selvrefleksjon, mening og selvutvikling;He who knows all the answers has not been asked all the questions
+Hvis du gjør en feil og ikke retter den, da er det virkelig en feil;;Confucius;Philosophize This!;Selvrefleksjon, mening og selvutvikling;If you make a mistake and do not correct it, this is called a mistake
+Den som stiller et spørsmål er en narr i ett øyeblikk – den som ikke spør, er en narr for livet;;Confucius;Philosophize This!;Sosialt samspill;The man who asks a question is a fool for a minute – the man who does not ask is a fool for life
+Når du møter et godt menneske, bør du strebe etter å bli som det – Når du møter et mindre godt menneske, bør du granske dine egne svakheter.;;Confucius;Philosophize This!;Sosialt samspill;When you see a good person, think of becoming like her/him – When you see someone not so good, reflect on your own weak points
+Virkelig kunnskap er å vite hvor grensene for ens egen uvitenhet går;;Confucius;Philosophize This!;Selvrefleksjon, mening og selvutvikling;Real knowledge is to know the extent of one's ignorance
+Gjør ikke mot andre det du ikke vil at de skal gjøre mot deg;;Confucius;Philosophize This!;Sosialt samspill;Don't do unto others what you don't want done unto you
+Å lære uten å tenke er bortkastet – å tenke uten å lære er farlig;;Confucius;Philosophize This!;Selvrefleksjon, mening og selvutvikling;Learning without thought is labour lost – thought without learning is perilous
+Den som sier at han kan, og den som sier at han ikke kan – begge har rett;;Confucius;Philosophize This!;Selvrefleksjon, mening og selvutvikling;The man who says he can, and the man who says he can not – Are both correct
+Det overlegne mennesket er beskjeden i sin tale, men stor i sine handlinger;;Confucius;Philosophize This!;Sosialt samspill;The superior man is modest in his speech, but exceeds in his actions
+Hensyn til andre er grunnlaget for et godt liv og et godt samfunn;;Confucius;Philosophize This!;Sosialt samspill;Consideration for others is the basis of a good life, a good society
+Fred kommer innenfra – Søk den ikke utenfor deg selv;;Siddhartha Gautama (Buddha);Philosophize This!;Stress- og angstmestring;Peace comes from within – Do not seek it without
+Å holde fast ved sinne er som å gripe et glødende kull for å kaste det på en annen – det er du selv som blir brent;;Siddhartha Gautama (Buddha);Philosophize This!;Selvrefleksjon, mening og selvutvikling;Holding on to anger is like grasping a hot coal with the intent of throwing it at someone else – you are the one who gets burned
+Ekte kjærlighet blir født av forståelse;;Siddhartha Gautama (Buddha);Philosophize This!;Selvrefleksjon, mening og selvutvikling;True love is born from understanding
+Fortiden er allerede borte, fremtiden er ennå ikke her. Det finnes bare ett øyeblikk å leve i – og det er nået;;Siddhartha Gautama (Buddha);Philosophize This!;Stress- og angstmestring;The past is already gone, the future is not yet here. There's only one moment for you to live, and that is the present moment
+En mann spurte Gautama Buddha, 'Jeg vil ha lykke'. Buddha svarte: 'Fjern først ‘jeg’ – det er egoet. Fjern deretter ‘vil’ – det er begjær. Se, nå står bare ‘lykke’ igjen.';;Siddhartha Gautama (Buddha);Philosophize This!;Selvrefleksjon, mening og selvutvikling;A man asked Gautama Buddha, 'I want happiness'. Buddha said, 'First remove 'I', that's Ego, then remove 'want', that's Desire. See now you are left with only 'Happiness'.'
+Lykke oppstår når arbeidet ditt og ordene dine er til nytte for andre;;Siddhartha Gautama (Buddha);Philosophize This!;Sosialt samspill;Happiness comes when your work and words are of benefit to others
+Den som har et hvorfor å leve for, kan tåle nesten ethvert hvordan;;Friedrich Nietzsche;Sinnsyn;Holdning og livsfilosofi;He who has a why to live can bear almost any how
+Mitt liv har vært fullt av ulykker – de fleste av dem skjedde aldri;;Michel de Montaigne;Philosophize This!;Stress- og angstmestring;My life has been full of terrible misfortunes, most of which never happened
+Den som frykter lidelse, lider allerede av frykten;;Michel de Montaigne;Philosophize This!;Stress- og angstmestring;He who fears he shall suffer, already suffers what he fears
+Vi må lære å utholde det vi ikke kan unngå;Visdom er å tåle livet slik det er;Michel de Montaigne;Philosophize This!;Stress- og angstmestring;We must learn to suffer whatever we cannot avoid
+Ingenting er så fast trodd som det vi vet minst om;;Michel de Montaigne;Philosophize This!;Selvrefleksjon, mening og selvutvikling;Nothing is so firmly believed as that which we least know
+Jeg foretrekker selskap med bønder, fordi de ikke er utdannet nok til å resonnere feil;;Michel de Montaigne;Philosophize This!;Selvrefleksjon, mening og selvutvikling;I prefer the company of peasants because they have not been educated sufficiently to reason incorrectly
+Tiden er som en elv av hendelser, og strømmen er stri – så snart en ting kommer til syne, feies den bort, og en annen tar dens plass, og også denne vil bli feid bort;Still lidelsene dine opp mot tiden – de er små;Marcus Aurelius;Philosophize This!;Stress- og angstmestring;Time is a sort of river of passing events, and strong is its current – no sooner is a thing brought to sight than it is swept by and another takes its place, and this too will be swept away
+Lykken kommer ikke av å eliminere det negative, men av å dyrke det meningsfulle;;Martin Seligman;;Stress- og angstmestring;Curing the negatives does not produce the positives
+Den som aldri har gjort en feil, har aldri prøvd noe nytt;;Albert Einstein;;Selvfølelse;Anyone who has never made a mistake has never tried anything new
+Hvis du ikke kan forklare det enkelt, forstår du det ikke godt nok;;Albert Einstein;;Selvrefleksjon, mening og selvutvikling;If you can't explain it simply, you don't understand it well enough
+Å unngå smerte er den sikreste veien til mer smerte;;Gabor Maté;;Stress- og angstmestring;The attempt to escape from pain, is what creates more pain
+Vi ser verden ikke slik den er, men slik vi er;;Anaïs Nin;;Selvrefleksjon, mening og selvutvikling;We don't see things as they are, we see them as we are
+Sinnet er som vann. Når det er urolig, blir det vanskelig å se. Men hvis du lar det roe seg, kan du se klart;;Master Oogway;Kung Fu Panda;Stress- og angstmestring;Your mind is like this water, my friend. When it is agitated, it becomes difficult to see. But if you allow it to settle, the answer becomes clear
+Yesterday is history, tomorrow is a mystery, but today is a gift. That is why it is called the present;;Master Oogway;Kung Fu Panda;Stress- og angstmestring;Yesterday is history, tomorrow is a mystery, but today is a gift. That is why it is called the present
+Bestem hvilke valg i livet som virkelig betyr noe, og fokuser tid og energi på dem;;Barry Schwartz;The Paradox Of Choice;Holdning og livsfilosofi;Decide which choices in your life really matter and focus your time and energy there
+Lær å akseptere 'godt nok';Dette vil gjøre beslutninger enklere og øke tilfredsheten;Barry Schwartz;The Paradox Of Choice;Holdning og livsfilosofi;Learning to accept 'good enough' will simplify decision making and increase satisfaction
+Sett en grense på 2 alternativer;Færre valgmuligheter gjør det lettere å bli en 'satisficer', og du vil være mer tilfreds med valgene dine;Barry Schwartz;The Paradox Of Choice;Holdning og livsfilosofi;Add a 2 options limit – Reducing the options to choose from will help you to become a 'satisficer', and you will have less regrets
+Perfeksjonister lider mest i en kultur med for mange valgmuligheter;De sammenligner seg mer med andre, bekymrer seg mer for tapte muligheter, og blir oftere skuffet når resultatene ikke er så gode som forventet;Barry Schwartz;The Paradox Of Choice;Selvrefleksjon, mening og selvutvikling;Maximizers suffer most in a culture that provides too many choices – Maximizers worry most about regret, missed opportunities, social comparisons, and are most disappointed when results of decisions are not as good as expected
+Gjør beslutningene dine ikke-reversible;Når man kan ombestemme seg, blir man ofte mindre fornøyde med valgene våre;Barry Schwartz;The Paradox Of Choice;Holdning og livsfilosofi;Make your decisions nonreversible – When we can change our minds about decisions, we are less satisfied with them
+Gjør beslutningene dine ikke-reversible;Når du vet at du ikke kommer til å ombestemme deg, kan du bruke all energien din på å forbedre det du har valgt, i stedet for stadig å tvile på valget;Barry Schwartz;The Paradox Of Choice;Holdning og livsfilosofi;Make your decisions nonreversible – Knowing that you've made a choice that you will not reverse allows you to pour your energy into improving the relationship that you have rather than constantly second-guessing it
+Skriv ned noen ting du er takknemlig for hver dag;Dette motvirker hedonisk tilpasning, slik at du lettere verdsetter det du allerede har, føler deg mer fornøyd og opplever mindre anger;Barry Schwartz;The Paradox Of Choice;Holdning og livsfilosofi;List a few things you are grateful for every day – This helps counter hedonic adaptation and the satisfaction treadmill, allowing you to appreciate what you already have, feel more content, and experience fewer regrets
+Bruk mindre tid på å lete etter den perfekte løsningen;Hedonisk tilpasning gjør at selv fantastiske ting gradvis føles mindre spennende enn de gjorde i starten;Barry Schwartz;The Paradox Of Choice;Holdning og livsfilosofi;Spend less time looking for the perfect thing - Hedonic adaptation ensures that even great things gradually feel less exciting than they did at first
+La fantastiske opplevelser være sjeldne;Spar favorittaktivitetene og godbitene dine til spesielle anledninger for å redusere hedonisk tilpasning og bevare gleden ved dem;Barry Schwartz;The Paradox Of Choice;Holdning og livsfilosofi;Keep wonderful experiences rare – Save your favorite treats and activities for special occasions to reduce hedonic adaptation and preserve their enjoyment
+Sosial sammenligning reduserer ofte tilfredsheten med valg;Å lære seg å akseptere 'godt nok' kan automatisk redusere behovet for å sammenligne seg med andre, fordi det er lettere for en 'satisficer' å la være å sammenligne;Barry Schwartz;The Paradox Of Choice;Sosialt samspill;Social comparison often reduces satisfaction – learning 'good enough' may automatically reduce concern with how others are doing, because it's easier for a satisficer to avoid social comparison
+Lag regler og rutiner du MÅ følge;Du slipper da å ta den samme bevisste beslutningen om og om igjen;Barry Schwartz;The Paradox Of Choice;Holdning og livsfilosofi;Learn to embrace constraints – Create rules you must follow, to avoid having to make a deliberate decision again and again
+`;
+   const allQuotes = parseCSV(csvQuotes);
+
+
+/* =========================
+   AUTHOR DATA
+========================= */
+        const csvAuthors = `
+author;year
+Albert Einstein;1879 – 1955
+Alexander Næss;1988 – nå
+Alfred Adler;1870 – 1937
+Anaïs Nin;1903 – 1977
+Carl Gustav Jung;1875 – 1961
+Confucius;551 – 479 f.Kr.
+Dale Carnegie;1888 – 1955
+Daniel Kahneman;1934 – 2024
+Derek Muller;1982 – nå
+Diogenes;ca. 413 – 324 f.Kr.
+Epictetus;ca. 50 – 135
+Friedrich Nietzsche;1844 – 1900
+Gabor Maté;1944 – nå
+Hanne H. Brorson;1981 – nå
+ICDP
+Ingvard Wilhelmsen;1949 – nå
+Jack Lannom;1947 – nå
+Kurzgesagt
+Lao Tzu;ca. 600-tallet f.Kr.
+Lovisenberg DPS
+Marcus Aurelius;121 – 180
+Martin Seligman;1942 – nå
+Mensa
+Michel de Montaigne;1533 – 1592
+Mongo Young
+Morgan Housel;1984 – nå
+Nathaniel Branden;1930 – 2014
+Ole Jacob Madsen;1978 – nå
+Seneca;ca. 4 f.Kr. – 65 e.Kr.
+Siddhartha Gautama (Buddha);ca. 563 – 483 f.Kr.
+Sigmund Freud;1856 – 1939
+Smårollingene
+Socrates;ca. 469 – 399 f.Kr.
+Sondre Risholm Liverød;1979 – nå
+Ullevål psykolog;
+Van Lena Næss;1989 – nå
+Viktor E. Frankl;1905 – 1997
+Warren Buffett;1930 – nå
+Winston Churchill;1874 – 1965
+Yongey Mingyur Rinpoche;1975 – nå
+`;
+       const authors = parseCSV(csvAuthors);
+
+
+/* =========================
+   EVENTS
+========================= */
+        categorySelect.addEventListener("change", genQuote);
+
+
+/* =========================
+   INIT
+========================= */
+        setCategoryByWeekday();
+        genQuote();
+
+    </script>
+  </body>
+</html>
