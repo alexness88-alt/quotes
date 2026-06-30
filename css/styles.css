@@ -6,7 +6,7 @@ body {
     height: 100%;
     width: 100%;
     background-color: DarkSlateGrey;
-    background-image: url('../images/china.png');
+    background-image: url('../images/china3.png');
     background-repeat: no-repeat;
     background-size: cover;
     background-position: top;
@@ -45,14 +45,14 @@ body {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    background-color: rgba(255, 255, 255, 0);
-    border: 1px solid rgba(255, 255, 255, 0);
+    background-color: transparent;
+    border: none;
     border-radius: 12px;
     padding: 0 0 0 0.1em;
     font-size: 4rem;
     font-weight: 900;
-    color: rgba(255, 255, 255, 0.2);
-    font-family: 'Palatino Linotype', Palatino, 'Book Antiqua', serif;
+    color: rgba(133, 131, 130);
+    font-family: 'Kalam', cursive;
     width: 100%;
     cursor: pointer;
     outline: none;
@@ -61,7 +61,7 @@ body {
 
 .modern-select option {
     font-size: 0.9rem;
-    background-color: rgba(30, 30, 30, 1);
+    background-color: transparent;
 }
 
 .modern-select:hover {
@@ -69,31 +69,88 @@ body {
     border-color: rgba(255, 255, 255, 0.7);
 }
 
+
 .modern-button {
-    outline: none;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    text-decoration: none;
-    opacity: 0.6;
-    background-color: DarkSlateGrey;
-    color: white;
-    border: thin solid lightgray;
-    height: 40px;
-    width: 100px;
-    border-radius: 2px;
-    transition: 0.5s;
+    background: rgba(120, 120, 120, 0.08);
+
+    border: 1px solid rgba(80, 80, 80, 0.2);
+    border-radius: 30px;
+
+    padding: 12px 24px;
+    width: auto;
+    height: auto;
+
+    color: rgba(80, 80, 80, 0.9);
+
+    font-family: 'Kalam', cursive;
+    font-size: 1.1rem;
+
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .modern-button:hover {
-    background-color: white;
-    color: black;
-    border: thin solid black;
-    opacity: 0.8;
+    background: rgba(120, 120, 120, 0.15);
+    border-color: rgba(80, 80, 80, 0.4);
+
+    transform: translateY(-2px);
 }
 
-.quote {
-    font-family: Georgia, 'Palatino Linotype', Palatino, serif;
+.modern-button:active {
+    transform: translateY(0);
 }
+
+/* SQUARE PAINT BRUSH */
+/* .modern-button {
+    background: rgba(0,0,0,0.15);
+
+    border: none;
+
+    color: white;
+
+    font-family: 'Kalam', cursive;
+    font-size: 1.2rem;
+
+    padding: 12px 28px;
+
+    border-left: 4px solid rgba(255,255,255,0.4);
+    border-right: 4px solid rgba(255,255,255,0.15);
+
+    transition: all 0.4s ease;
+}
+
+.modern-button:hover {
+    background: rgba(255,255,255,0.08);
+    border-left-color: rgba(255,255,255,0.8);
+} */
+
+/* RED SEAL */
+/* .modern-button {
+    background: rgba(138, 0, 0, 0.75);
+    color: #f5e9d0;
+
+    border: 1px solid rgba(255,255,255,0.15);
+
+    border-radius: 4px;
+
+    width: 110px;
+    height: 48px;
+
+    font-family: 'Kalam', cursive;
+    font-size: 1rem;
+
+    transition: all 0.3s ease;
+}
+
+.modern-button:hover {
+    background: rgba(170, 20, 20, 0.85);
+} */
+
+
+.quote {
+    font-family: 'Kalam', cursive;
+    /* font-family: Georgia, 'Palatino Linotype', Palatino, serif; */
+} 
 
 .chinesequote {
     font-size: 2rem;
